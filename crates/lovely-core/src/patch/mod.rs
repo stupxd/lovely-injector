@@ -4,11 +4,13 @@ use serde::{Serialize, Deserialize};
 
 pub use copy::CopyPatch;
 pub use module::ModulePatch;
+pub use mod_path::ModPathPatch;
 pub use pattern::PatternPatch;
 pub use regex::RegexPatch;
 
 pub mod copy;
 pub mod module;
+pub mod mod_path;
 pub mod pattern;
 pub mod regex;
 pub mod vars;
@@ -77,6 +79,7 @@ pub enum Patch {
     Regex(RegexPatch),
     Copy(CopyPatch),
     Module(ModulePatch),
+    ModPath(ModPathPatch),
 }
 
 #[derive(Serialize, Deserialize, Debug)]

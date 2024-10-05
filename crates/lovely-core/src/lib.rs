@@ -324,6 +324,10 @@ impl PatchTable {
                         x.source = mod_dir.join(&x.source);
                         targets.insert(x.before.clone());
                     }
+                    Patch::ModPath(ref mut x) => {
+                        x.path = mod_dir.to_str().unwrap_or_default().to_string();
+                        targets.insert(x.before.clone());
+                    }
                     Patch::Pattern(x) => {
                         targets.insert(x.target.clone());
                     }
@@ -383,6 +387,7 @@ impl PatchTable {
             code = code.replace(&field, &value);
         }
 
+        log::info!("creating lovely module");
         sys::load_module(state, "lovely", &code, self.loadbuffer.as_ref().unwrap())
     }
 
@@ -402,6 +407,16 @@ impl PatchTable {
             .iter()
             .filter_map(|(x, prio)| match x {
                 Patch::Module(patch) => Some((patch, prio)),
+                _ => None,
+            })
+            .sorted_by_key(|(_, &prio)| prio)
+            .map(|(x, _)| x);
+
+        let mod_path_patches = self
+            .patches
+            .iter()
+            .filter_map(|(x, prio)| match x {
+                Patch::ModPath(patch) => Some((patch, prio)),
                 _ => None,
             })
             .sorted_by_key(|(_, &prio)| prio)
@@ -432,6 +447,14 @@ impl PatchTable {
         // Apply module injection patches.
         let loadbuffer = self.loadbuffer.unwrap();
         for patch in module_patches {
+            let result = unsafe { patch.apply(target, lua_state, &loadbuffer) };
+
+            if result {
+                patch_count += 1;
+            }
+        }
+
+        for patch in mod_path_patches {
             let result = unsafe { patch.apply(target, lua_state, &loadbuffer) };
 
             if result {
